@@ -1,24 +1,16 @@
 const express = require('express')
 const expressLayouts = require('express-ejs-layouts');
-const morgan = require('morgan');
+const { loadContact, findContact } = require('./utils/contacts');
+
 const app = express()
 const port = 3000
 
 //menggunakan ejs
 app.set('view engine', 'ejs');
-
 //third-party middleware
 app.use(expressLayouts);
-app.use(morgan('dev'));
-
 //built-in middleware 
 app.use(express.static('public'));
-
-//Application level middleware
-app.use((req, res, next) =>{
-    console.log('Time', Date.now());
-    next();
-})
 
 
 app.get('/', (req, res) => {
@@ -53,16 +45,22 @@ res.render('about', {
 
 
 app.get('/contact', (req, res) => {
-    // res.send('Ini adalah halaman contact')
-    // res.sendFile('./contact.html', {root: __dirname});
+    const contacts = loadContact();
+
     res.render('contact', {
         layout: 'layouts/main-layout',
-        title: ' Halaman Contact'});
+        title: ' Halaman Contact',
+        contacts,
+    });
 })
+app.get('/contact/:nama', (req, res) => {
+    const contact = findContact(req.params.nama);
 
-app.get('/product/:id', (req,res)=>{
-    // res.send(`Product ID :  ${req.params.id} <br> Category : ${req.query.category}`)
-    res.render(`Product ID :  ${req.params.id} <br> Category : ${req.query.category}`);
+    res.render('detail', {
+        layout: 'layouts/main-layout',
+        title: ' Halaman Detail Contact',
+        contact,
+    });
 })
 
 app.use('/', (req, res) => {
