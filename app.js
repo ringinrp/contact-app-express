@@ -1,6 +1,6 @@
 const express = require('express')
 const expressLayouts = require('express-ejs-layouts');
-const { loadContact, findContact, addContact, cekDuplikat } = require('./utils/contacts');
+const { loadContact, findContact, addContact, cekDuplikat, deleteContact, updateContacts } = require('./utils/contacts');
 const {body, validationResult, check} = require('express-validator');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
@@ -106,6 +106,62 @@ app.post('/contact', [
     }
 })
 
+//proses delete contact
+app.get('/contact/delete/:nama', (req, res)=>{
+    const contact = findContact(req.params.nama);
+
+    //jika contact tidak ada
+    if(!contact){
+        res.status(404);
+        res.send('<h1>404</h1>')
+    }else{
+        deleteContact(req.params.nama);
+        req.flash('msg', 'Data contact berhasil dihapus!');
+        res.redirect('/contact');
+    }
+});
+
+//form ubah data contact
+app.get('/contact/edit/:nama', (req, res) => {
+    const contact = findContact(req.params.nama);
+
+    res.render('edit-contact', {
+        title: 'Form Ubah Data Contact',
+        layout: 'layouts/main-layout',
+        contact,
+    })
+})
+//proses ubah data
+app.post('/contact/update', [
+    body('nama').custom((value, {req})=>{
+        const duplikat = cekDuplikat(value);
+        if(value !== req.body.oldName && duplikat){
+            throw new Error('Nama sudah digunakan!!');
+        }
+        return true;
+    }),
+    check('email', 'Email tidak valid!').isEmail(),
+    check('nohp', 'Nomer Handphone tidak valid!').isMobilePhone('id-ID') 
+], (req, res)=>{
+    const errors = validationResult (req);
+    if (!errors.isEmpty()){
+        // return res.status(404).json({errors: errors.array()});
+        res.render('edit-contact', {
+            title: 'Form ubah data contact',
+            layout: 'layouts/main-layout',
+            errors: errors.array(),
+            contacts: req.body,
+        })
+    }else{
+        updateContacts(req.body);
+        //kirim flash messsage
+        req.flash('msg', 'Data contact berhasil diubah');
+        res.redirect('/contact');
+    }
+})
+
+
+
 //halaman detail contact
 app.get('/contact/:nama', (req, res) => {
     const contact = findContact(req.params.nama);
@@ -116,6 +172,7 @@ app.get('/contact/:nama', (req, res) => {
         contact,
     });
 })
+
 
 app.use('/', (req, res) => {
     res.status(404)
